@@ -1,6 +1,6 @@
 # 生命游戏与图案 
 
-程序实现了经典的康威生命游戏。** Conway's Game of Life, running in a browser, and programmed in JavaScript with Deepseek by one single html file**
+程序实现了经典的康威生命游戏，元胞自动机，浏览器版本，使用DeepSeek辅助生成代码，单个HTML文件加载即可运行。** Conway's Game of Life, running in a browser, and programmed in JavaScript with Deepseek by one single html file**
 
 
 ## 功能特性
@@ -35,6 +35,10 @@
 **方式二：在线使用**
 
 直接访问：https://phdnext.github.io/life-game/
+
+## 贡献者
+
+DeepSeek
 
 ## 许可证
 
