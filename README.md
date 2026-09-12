@@ -1,7 +1,6 @@
 # 生命游戏与图案 
 
-程序实现了经典的康威生命游戏。
-## Conway's Game of Life, running in a browser and programmed in JavaScript
+程序实现了经典的康威生命游戏。** Conway's Game of Life, running in a browser and programmed in JavaScript **
 
 
 ## 功能特性
