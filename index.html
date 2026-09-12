@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>生命游戏 - Conway's Game of Life</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: #e9eef3;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', '黑体', Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .app-window {
+            background: #f5f7fa;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            width: fit-content;
+            border: 1px solid #dce3ec;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s ease;
+        }
+
+        .title-bar {
+            background: #eef2f7;
+            padding: 6px 20px;
+            border-bottom: 1px solid #d4dce6;
+            border-radius: 12px 12px 0 0;
+        }
+        .title-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2c3e4f;
+        }
+
+        .main-content {
+            display: flex;
+            padding: 16px 20px 8px 20px;
+            gap: 16px;
+        }
+
+        .canvas-area {
+            background: #f5f7fa;
+        }
+        #gameCanvas {
+            display: block;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            border-radius: 8px;
+        }
+
+        .sidebar-tools {
+            width: 170px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .side-btn {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 5px 8px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 500;
+            color: #1e2a3e;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            text-align: center;
+            width: 100%;
+        }
+        .side-btn:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+        .side-btn:active {
+            background: #e2e8f0;
+            transform: translateY(1px);
+        }
+        .mode-active {
+            background: #d9e6f7;
+            border-color: #2c6e9e;
+            color: #0f3b5c;
+        }
+        .run-btn {
+            background: #4caf50;
+            border-color: #388e3c;
+            color: white;
+            font-weight: bold;
+        }
+        .run-btn:hover {
+            background: #45a049;
+        }
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        .control-row select {
+            width: 90px;
+            padding: 4px 4px;
+            font-size: 11px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+        }
+        #patternSelect {
+            width: 170px;
+        }
+        #speedSelect {
+            width: 90px;
+        }
+        .control-row input {
+            width: 60px;
+            padding: 4px 4px;
+            font-size: 11px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+        }
+        .control-row input[type="range"] {
+            width: 100px;
+            padding: 0;
+        }
+        #adValue {
+            width: 35px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .chart-area {
+            background: #f5f7fa;
+            padding: 0 20px 12px 20px;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        .chart-area.collapsed {
+            padding: 0 20px 0 20px;
+            max-height: 0;
+            visibility: collapse;
+        }
+        .chart-container {
+            width: 601px;
+        }
+        canvas#historyChart {
+            display: block;
+            width: 601px;
+            height: 200px;
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .status-bar {
+            background: #eef2f6;
+            border-top: 1px solid #dce3ec;
+            padding: 5px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Segoe UI', 'Microsoft YaHei', '黑体', Arial, sans-serif;
+            font-size: 12px;
+            border-radius: 0 0 12px 12px;
+        }
+        .status-panel {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        .status-value {
+            font-weight: 700;
+            background: #ffffffdd;
+            padding: 0 6px;
+            border-radius: 4px;
+            min-width: 65px;
+            display: inline-block;
+            text-align: right;
+        }
+        .mode-indicator {
+            font-size: 11px;
+            background: #e2e8f0;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .record-status {
+            font-size: 11px;
+            background: #ff5722;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+            animation: pulse 1s infinite;
+            display: none;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        .term-notice {
+            font-size: 11px;
+            color: #c2410c;
+            background: #fff2e8;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .help-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .help-dialog {
+            background: #f5f7fa;
+            border-radius: 16px;
+            padding: 20px 28px;
+            max-width: none;
+            width: 780px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            border: 1px solid #dce3ec;
+        }
+        .help-dialog h3 {
+            margin-bottom: 16px;
+            color: #2c3e4f;
+            font-size: 18px;
+            border-bottom: 2px solid #4caf50;
+            display: inline-block;
+            padding-bottom: 4px;
+        }
+        .help-dialog h4 {
+            margin: 12px 0 6px 0;
+            color: #2c6e9e;
+            font-size: 14px;
+        }
+        .help-dialog p {
+            margin: 4px 0;
+            font-size: 13px;
+            color: #334155;
+        }
+        .help-close {
+            margin-top: 20px;
+            padding: 8px 20px;
+            background: #4caf50;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            width: 100%;
+        }
+        .help-close:hover {
+            background: #45a049;
+        }
+        kbd {
+            background: #eef2f7;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: 600;
+            box-shadow: 0 1px 0 #cbd5e1;
+            margin: 0 2px;
+        }
+    </style>
+</head>
+<body>
+<div class="app-window">
+    <div class="title-bar"><div class="title-text">Game of Life and Patterns</div></div>
+
+    <div class="main-content">
+        <div class="canvas-area">
+            <canvas id="gameCanvas" width="601" height="601"></canvas>
+        </div>
+
+        <div class="sidebar-tools">
+            <button id="openBtn" class="side-btn">📂 OPEN</button>
+            <button id="saveBtn" class="side-btn">💾 SAVE</button>
+            <button id="recordBtn" class="side-btn">🔴 RECORD</button>
+            <button id="playPauseBtn" class="side-btn run-btn">▶️ PLAY</button>
+            <button id="stepBtn" class="side-btn">⏩ STEPPING (F)</button>
+            <button id="resetBtn" class="side-btn">🗑️ RESET</button>
+            <button id="rotateBtn" class="side-btn">⭐️ ROTATE</button>
+            <button id="addPatternBtn" class="side-btn" style="background:#e6f0fa;">➕ ADD PATTERN</button>
+            
+            <div class="control-row"><span></span><select id="patternSelect">
+                <option value="circles">⭕️ Circles</option>
+                <option value="squares">🔲 Squares</option>
+                <option value="triangles">🔺 Triangles</option>
+                <!-- option value="trianglesDown">🔻 Triangles Down</option https://getemoji.com/ 🎦🛑🔆📊 ⚙️✡️🔄🏴 ☎️🆗⚓🌐 ▤ ▥ -->
+                <option value="grid">#️⃣ Grid</option>  
+                <option value="vgrid">♓️ Vertical Grid</option>
+                <option value="hgrid">♒️ Horizontal Grid</option>
+                <option value="diagonal">📐 Diagonal Lines</option>
+                <option value="circlesDiagonal">🔵 Circles On Diagonal</option>
+                <option value="blocks">🔳 Blocks</option>
+                <option value="random">🎲 Random (Mosaic)</option></select></div>
+            <div class="control-row"><span>📏 SPACING:</span><input type="number" id="spacingInput" min="2" max="200" value="20" step="1"><span style="margin-left:4px;">px</span></div>
+            <div class="control-row"><span>📌 ADJUST: </span><input type="number" id="adSlider" min="-100" max="100" value="0" step="1"><span style="margin-left:0px;">px</span></div>
+            <div class="control-row"><span>⚡ SPEED:</span><select id="speedSelect"><option value="1">1 Hz</option><option value="2">2 Hz</option><option value="5">5 Hz</option><option value="10">10 Hz</option></select></div>
+            
+            <button id="paintModeBtn" class="side-btn mode-active">✏️ PAINT</button>
+            <button id="eraserModeBtn" class="side-btn">✳️ ERASER</button>
+            <button id="magnifyModeBtn" class="side-btn">🔍 MAGNIFY</button>
+            <button id="handmadeModeBtn" class="side-btn">🖐️ HANDMADE</button>
+            <button id="toggleChartBtn" class="side-btn">📉 CHART</button>
+            <button id="helpBtn" class="side-btn">❓ HELP</button>
+        </div>
+    </div>
+
+    <div class="chart-area" id="chartArea">
+        <div class="chart-container">
+            <canvas id="historyChart" width="601" height="200" style="width:601px; height:200px;"></canvas>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-panel">
+            <span>❤️ LIVE CELLs: <span id="liveCount" class="status-value">0</span></span>
+            <span>🔄 GEN: <span id="genCount" class="status-value">0</span></span>
+            <span class="mode-indicator" id="modeIndicator">✏️ PAINT</span>
+            <span id="recordStatus" class="record-status">🔴 Recording...</span>
+        </div>
+        <div id="termNotice" class="term-notice" style="display: none;"></div>
+    </div>
+</div>
+
+<script src="extern.js"></script>
+<script>
+    // ============================================================
+    // 生命游戏核心模块 - 包含所有游戏逻辑，但不包含 OPEN/SAVE/RECORD 的具体实现
+    // OPEN/SAVE/RECORD 按钮会调用 window.LifeGameExtensions 中注册的函数
+    // ============================================================
+    (function(){
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const SIZE = 601;
+        const LOGIC_W = 601, LOGIC_H = 601; // 画布尺寸大小
+        const CENTER_X = 300, CENTER_Y = 300;
+        
+        let currentGrid = Array(LOGIC_H).fill().map(() => new Uint8Array(LOGIC_W));
+        let nextGrid = Array(LOGIC_H).fill().map(() => new Uint8Array(LOGIC_W));
+        let currentMode = 'paint';  // 'paint', 'eraser', 'magnify', 'handmade'
+        
+        const LENS_SIZE = 120;  // 透镜大小
+        const MAG_CELL_PX = 4;  // 放大倍数
+        
+        // 手工模式：19x19 围棋棋盘，18x18 个格子每个格子32x32像素，间距33px，中心对称
+        const HANDMADE_CELL_SIZE = 32;
+        const HANDMADE_GRID_STEP = 33;
+        const HANDMADE_GRID_W = 18; // 格子数（细胞数）
+        const HANDMADE_GRID_H = 18;
+        const HANDMADE_LINES = 19;  // 线条数（= 格子数 + 1）
+        const HANDMADE_OFFSET_X = CENTER_X - (Math.floor(HANDMADE_GRID_W / 2) * HANDMADE_GRID_STEP);
+        const HANDMADE_OFFSET_Y = CENTER_Y - (Math.floor(HANDMADE_GRID_H / 2) * HANDMADE_GRID_STEP);
+        
+        // 手工模式专用：棋盘状态（18x18），每个格子代表一个细胞
+        let handmadeBoard = Array(HANDMADE_GRID_H).fill().map(() => Array(HANDMADE_GRID_W).fill(0));
+        
+        let intervalId = null;
+        let isRunning = false;
+        let generation = 0;
+        let currentSpeed = 1;
+        
+        let consecutiveStableCount = 0;
+        let lastAliveCount = 0;
+        const STABLE_THRESHOLD = 8;
+        let terminationMessage = '';
+        
+        let historyAliveList = [];
+        let historyNewBornList = [];  // 存储每代新生细胞数
+        let globalMaxAlive = 1;
+        let globalMaxNewBorn = 1;     // 新生细胞最大值（用于图表缩放）
+        let newBornCount = 0;  // 记录新产生的细胞个数
+        
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const rotateBtn = document.getElementById('rotateBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const addPatternBtn = document.getElementById('addPatternBtn');
+        const paintModeBtn = document.getElementById('paintModeBtn');
+        const eraserModeBtn = document.getElementById('eraserModeBtn');
+        const magnifyModeBtn = document.getElementById('magnifyModeBtn');
+        const handmadeModeBtn = document.getElementById('handmadeModeBtn');
+        const toggleChartBtn = document.getElementById('toggleChartBtn');
+        const helpBtn = document.getElementById('helpBtn');
+        const patternSelect = document.getElementById('patternSelect');
+        const spacingInput = document.getElementById('spacingInput');
+        const speedSelect = document.getElementById('speedSelect');
+        const liveCountSpan = document.getElementById('liveCount');
+        const genCountSpan = document.getElementById('genCount');
+        const modeIndicator = document.getElementById('modeIndicator');
+        const chartArea = document.getElementById('chartArea');
+        const termNotice = document.getElementById('termNotice');
+        const adSlider = document.getElementById('adSlider');
+        const adValue = document.getElementById('adValue');
+        
+        const historyCanvas = document.getElementById('historyChart');
+        const historyCtx = historyCanvas.getContext('2d');
+        
+        const MAX_PATTERN_SPACE = 200;
+        let spacing = 20;
+        let adCurrent = 0;
+        let mouseX = -100, mouseY = -100;
+        let showLens = false;
+        let chartCollapsed = false;
+        
+        // ========== 放大镜性能优化：缓存变量 ==========
+        let baseCanvasCache = null;      // 缓存的基础画布
+        let needRedrawBase = true;       // 是否需要重新绘制基础画布
+        let rafId = null;                // requestAnimationFrame ID
+        
+        // ========== 旋转计数器 ==========
+        let rotationCount = 0;  // 0:0°, 1:90°, 2:180°, 3:270°
+        
+        // ========== 手工模式核心函数 ==========
+        function syncHandmadeToCanvas() {
+            for (let row = 0; row < HANDMADE_GRID_H; row++) {
+                for (let col = 0; col < HANDMADE_GRID_W; col++) {
+                    const value = handmadeBoard[row][col];
+                    const x0 = HANDMADE_OFFSET_X + col * HANDMADE_GRID_STEP;
+                    const y0 = HANDMADE_OFFSET_Y + row * HANDMADE_GRID_STEP;
+                    for (let dy = 0; dy < HANDMADE_CELL_SIZE && (y0 + dy) < SIZE; dy++) {
+                        for (let dx = 0; dx < HANDMADE_CELL_SIZE && (x0 + dx) < SIZE; dx++) {
+                            const px = x0 + dx, py = y0 + dy;
+                            if (px >= 0 && px < LOGIC_W && py >= 0 && py < LOGIC_H) {
+                                currentGrid[py][px] = value;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        function syncCanvasToHandmade() {
+            for (let row = 0; row < HANDMADE_GRID_H; row++) {
+                for (let col = 0; col < HANDMADE_GRID_W; col++) {
+                    const x0 = HANDMADE_OFFSET_X + col * HANDMADE_GRID_STEP;
+                    const y0 = HANDMADE_OFFSET_Y + row * HANDMADE_GRID_STEP;
+                    let hasAlive = false;
+                    for (let dy = 0; dy < HANDMADE_CELL_SIZE && (y0 + dy) < SIZE; dy++) {
+                        for (let dx = 0; dx < HANDMADE_CELL_SIZE && (x0 + dx) < SIZE; dx++) {
+                            const px = x0 + dx, py = y0 + dy;
+                            if (px >= 0 && px < LOGIC_W && py >= 0 && py < LOGIC_H && currentGrid[py][px]) {
+                                hasAlive = true;
+                                break;
+                            }
+                        }
+                        if (hasAlive) break;
+                    }
+                    handmadeBoard[row][col] = hasAlive ? 1 : 0;
+                }
+            }
+        }
+        
+        function evolveHandmadeBoard() {
+            const newBoard = Array(HANDMADE_GRID_H).fill().map(() => Array(HANDMADE_GRID_W).fill(0));
+            newBornCount = 0;  // 重置新生计数
+            for (let row = 0; row < HANDMADE_GRID_H; row++) {
+                for (let col = 0; col < HANDMADE_GRID_W; col++) {
+                    let neighbors = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            const nr = row + dy, nc = col + dx;
+                            if (nr >= 0 && nr < HANDMADE_GRID_H && nc >= 0 && nc < HANDMADE_GRID_W) {
+                                neighbors += handmadeBoard[nr][nc];
+                            }
+                        }
+                    }
+                    const cell = handmadeBoard[row][col];
+                    if (cell === 1) {
+                        newBoard[row][col] = (neighbors === 2 || neighbors === 3) ? 1 : 0;
+                    } else {
+                        // newBoard[row][col] = (neighbors === 3) ? 1 : 0;
+                        // 死细胞：恰好3个邻居则诞生
+                        if (neighbors === 3) {
+                            newBoard[row][col] = 1;
+                            newBornCount++;  // 统计新生细胞
+                        }
+                    }
+                }
+            }
+            for (let row = 0; row < HANDMADE_GRID_H; row++) {
+                for (let col = 0; col < HANDMADE_GRID_W; col++) {
+                    handmadeBoard[row][col] = newBoard[row][col];
+                }
+            }
+            syncHandmadeToCanvas();
+            needRedrawBase = true;
+            // 可选：显示新生细胞数
+            showTerminationNotice(`# ${newBornCount} New Cells Born`);
+        }
+        
+        function countHandmadeAlive() {
+            let alive = 0;
+            for (let row = 0; row < HANDMADE_GRID_H; row++) {
+                for (let col = 0; col < HANDMADE_GRID_W; col++) {
+                    alive += handmadeBoard[row][col];
+                }
+            }
+            return alive;
+        }
+        
+        function getHandmadeCellFromCoord(px, py) {
+            if (px < HANDMADE_OFFSET_X || py < HANDMADE_OFFSET_Y) return null;
+            const col = Math.floor((px - HANDMADE_OFFSET_X) / HANDMADE_GRID_STEP);
+            const row = Math.floor((py - HANDMADE_OFFSET_Y) / HANDMADE_GRID_STEP);
+            if (col >= 0 && col < HANDMADE_GRID_W && row >= 0 && row < HANDMADE_GRID_H) {
+                return { col, row };
+            }
+            return null;
+        }
+        
+        function toggleHandmadeCell(col, row) {
+            if (col < 0 || col >= HANDMADE_GRID_W || row < 0 || row >= HANDMADE_GRID_H) return;
+            handmadeBoard[row][col] = handmadeBoard[row][col] === 1 ? 0 : 1;
+            const x0 = HANDMADE_OFFSET_X + col * HANDMADE_GRID_STEP;
+            const y0 = HANDMADE_OFFSET_Y + row * HANDMADE_GRID_STEP;
+            const value = handmadeBoard[row][col];
+            for (let dy = 0; dy < HANDMADE_CELL_SIZE && (y0 + dy) < SIZE; dy++) {
+                for (let dx = 0; dx < HANDMADE_CELL_SIZE && (x0 + dx) < SIZE; dx++) {
+                    const px = x0 + dx, py = y0 + dy;
+                    if (px >= 0 && px < LOGIC_W && py >= 0 && py < LOGIC_H) {
+                        currentGrid[py][px] = value;
+                    }
+                }
+            }
+            needRedrawBase = true;
+            renderCanvas();
+            updateStats();
+            resetTerminationTracking();
+            updateGlobalMax();
+            drawChart();
+        }
+        
+        function drawHandmadeGridOverlay() {
+            if (currentMode !== 'handmade') return;
+            ctx.save();
+            ctx.fillStyle = '#ADD8E6';
+            if (HANDMADE_OFFSET_Y > 0) {
+                ctx.fillRect(0, 0, SIZE, HANDMADE_OFFSET_Y);
+            }
+            const bottomStart = HANDMADE_OFFSET_Y + HANDMADE_GRID_H * HANDMADE_GRID_STEP;
+            if (bottomStart < SIZE) {
+                ctx.fillRect(0, bottomStart, SIZE, SIZE - bottomStart);
+            }
+            if (HANDMADE_OFFSET_X > 0) {
+                ctx.fillRect(0, HANDMADE_OFFSET_Y, HANDMADE_OFFSET_X, HANDMADE_GRID_H * HANDMADE_GRID_STEP);
+            }
+            const rightStart = HANDMADE_OFFSET_X + HANDMADE_GRID_W * HANDMADE_GRID_STEP;
+            if (rightStart < SIZE) {
+                ctx.fillRect(rightStart, HANDMADE_OFFSET_Y, SIZE - rightStart, HANDMADE_GRID_H * HANDMADE_GRID_STEP);
+            }
+            ctx.beginPath();
+            ctx.strokeStyle = '#888888';
+            ctx.lineWidth = 1;
+
+            // 网格线绘制
+            // 绘制 19 条竖线
+            for (let i = 0; i < HANDMADE_LINES; i++) {
+                const x = HANDMADE_OFFSET_X + i * HANDMADE_GRID_STEP;
+                if (x >= 0 && x <= SIZE) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, HANDMADE_OFFSET_Y);
+                    ctx.lineTo(x, HANDMADE_OFFSET_Y + (HANDMADE_LINES - 1) * HANDMADE_GRID_STEP);
+                    ctx.stroke();
+                }
+            }
+            // 绘制 19 条横线
+            for (let i = 0; i < HANDMADE_LINES; i++) {
+                const y = HANDMADE_OFFSET_Y + i * HANDMADE_GRID_STEP;
+                if (y >= 0 && y <= SIZE) {
+                    ctx.beginPath();
+                    ctx.moveTo(HANDMADE_OFFSET_X, y);
+                    ctx.lineTo(HANDMADE_OFFSET_X + (HANDMADE_LINES - 1) * HANDMADE_GRID_STEP, y);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.fillStyle = '#D4A056'; // 星位的金黄色
+            
+            //const starRadius = 3;
+            //const starPositions = [
+            //    { col: 9, row: 9 }, { col: 3, row: 3 }, { col: 15, row: 3 },
+            //    { col: 3, row: 15 }, { col: 15, row: 15 }, { col: 9, row: 3 },
+            //    { col: 9, row: 15 }, { col: 3, row: 9 }, { col: 15, row: 9 }
+            //];
+            // 标准围棋 19 路棋盘星位，坐标是交叉点索引（0 到 18）
+            const starPositions = [
+                // 四隅星位
+                { col: 3, row: 3 },   // 右上
+                { col: 15, row: 3 },  // 左上
+                { col: 3, row: 15 },  // 右下
+                { col: 15, row: 15 }, // 左下
+                // 边星
+                { col: 3, row: 9 },   // 上边
+                { col: 15, row: 9 },  // 下边
+                { col: 9, row: 3 },   // 左边
+                { col: 9, row: 15 },  // 右边
+                // 天元（中心）
+                { col: 9, row: 9 }
+            ];
+
+            const starRadius = 4;
+            for (let pos of starPositions) {
+                //if (pos.col >= 0 && pos.col < HANDMADE_GRID_W && pos.row >= 0 && pos.row < HANDMADE_GRID_H) {
+                //    const x0 = HANDMADE_OFFSET_X + pos.col * HANDMADE_GRID_STEP;
+                //    const y0 = HANDMADE_OFFSET_Y + pos.row * HANDMADE_GRID_STEP;
+                //    const cx = x0 + HANDMADE_CELL_SIZE / 2;
+                //    const cy = y0 + HANDMADE_CELL_SIZE / 2;
+                if (pos.col >= 0 && pos.col < HANDMADE_LINES && 
+                    pos.row >= 0 && pos.row < HANDMADE_LINES) {
+                    // 交叉点坐标（网格线的交点）
+                    const cx = HANDMADE_OFFSET_X + pos.col * HANDMADE_GRID_STEP;
+                    const cy = HANDMADE_OFFSET_Y + pos.row * HANDMADE_GRID_STEP;
+
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, starRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = '#C97E2A';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, starRadius - 1, 0, Math.PI * 2);
+                    ctx.fillStyle = '#F5D742';
+                    ctx.fill();
+                }
+            } 
+            ctx.restore();
+        }
+        
+        // ========== 手工模式鼠标悬停高亮 ==========
+        function drawHandmadeHoverHighlight(px, py) {
+            if (currentMode !== 'handmade') return;
+            const cell = getHandmadeCellFromCoord(px, py);
+            if (!cell) return;
+            const x0 = HANDMADE_OFFSET_X + cell.col * HANDMADE_GRID_STEP;
+            const y0 = HANDMADE_OFFSET_Y + cell.row * HANDMADE_GRID_STEP;
+            ctx.save();
+            ctx.globalAlpha = 0.35;
+            ctx.fillStyle = '#ffaa33';
+            ctx.fillRect(x0, y0, HANDMADE_CELL_SIZE, HANDMADE_CELL_SIZE);
+            ctx.globalAlpha = 1;
+            ctx.beginPath();
+            ctx.rect(x0, y0, HANDMADE_CELL_SIZE, HANDMADE_CELL_SIZE);
+            ctx.strokeStyle = '#ff8800';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+        }
+        // ================================================================
+        
+        // ========== 辅助函数 ==========
+        function showHelpDialog() {
+            const overlay = document.createElement('div');
+            overlay.className = 'help-overlay';
+            overlay.innerHTML = `
+                <div class="help-dialog">
+                    <div style="display:flex; gap:24px; align-items:flex-start;">
+                        <div style="flex-shrink:0; width:240px; display:flex; flex-direction:column; align-items:center;">
+                            <!-- div style="flex-shrink:0; width:240px; height:240px; background:#eef2f7; border-radius:2px; overflow:hidden;"-->
+                            <div id="helpImageContainer" style="flex-shrink:0; width:240px; height:240px; background:#eef2f7; overflow:hidden; cursor: pointer;">
+                                <img id="helpDialogImage" style="width:100%; height:100%; object-fit:cover;" alt="快捷键示意图">
+                            </div>
+                            <div style="margin-top:12px; text-align:center; width:100%;">
+                                <div style="font-family: 'Segoe UI', 'Microsoft YaHei', 'Roboto', sans-serif; font-size: 13px; font-weight: bold; color: #2c3e4f; line-height: 1.4;">
+                                    <p style="margin: 4px 0; font-size: 16px;">Game of Life and Patterns -- Go! LP</p>
+                                    <p style="margin: 4px 0;">V1.06 @2026</p>
+                                    <p style="margin: 4px 0;">By D.X.M.</p>
+                                    <p style="margin: 4px 0;">With Deepseek</p>
+                                    <p style="margin: 4px 0;">In Chrome Browser</p>
+                                    <p style="margin: 8px 0 4px 0;">✨✨✨</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 右侧：帮助信息 -->
+                        <div style="flex:1;">
+                            <h3>⚓ 生命游戏与图案 —— 体会结构之美</h3>
+                            <p>程序实现了经典的康威生命游戏，规则B3/S23，即 3个邻居诞生1个活细胞，2-3个邻居则继续存活，其他情况则因孤独或拥挤而死。</p>
+                            <p>画布尺寸601x601=361,201px，每个像素代表一个细胞，黑色为活，白色为死，随着代代演变，图形发生有规律的变化，可形成各式各样精美图案。</p>
+                            <h4>➕ ADD PATTERN 添加图案</h4>
+                            <p>可选同心圆、正方形、正三角、网格、对角线、斜向圆圈、方块、随机马赛克等结构化图案，叠加至画布并铺满，图形递进的间隔、间隔的调整增量由SPACING和ADJUST控制。</p>
+                            <p>🔼 SPACING 间隔 - 图案线条之间的间距，范围 [2, 200]，默认为20px.</p>
+                            <p>🔽 ADJUST 调整 - 间隔的增量，范围 [-100, 100]，默认为0，即等间距。同时，程序控制Ad不超过S/2，或取绝对值，防止间隔过大或过小导致显示异常。</p>
+                            <p>注意，Blocks图案的S=实心方块大小，Ad+1=间隔；Mosaic图案的S=方块大小，最大32px，Ad~控制密度 [5%, 70%]。例如，PATTERN(blocks, 32, 0)，相当于手工模式的棋盘。<p>
+                            <h4>🎮 游戏控制</h4>
+                            <p><kbd>Space</kbd> - 运行/暂停 (PLAY/PAUSE) - 以指定速率演化（默认每秒1代），直到活细胞为0，或连续8代细胞数量不变即自动停止</p>
+                            <p><kbd>F</kbd> - 单步运行 (STEPPING)</p>
+                            <p><kbd>R</kbd> - 旋转画布 (ROTATE) - 顺时针90°循环</p>
+                            <p><kbd>Ctrl+R</kbd> - 重置画布 (RESET)</p>
+                            <h4>✏️ 编辑模式</h4>
+                            <p><kbd>P</kbd> - 画笔模式 (PAINT) - 单击添加1个半径r=2px的圆点，含13个活细胞</p>
+                            <p><kbd>E</kbd> - 擦除模式 (ERASER) - 64x64px 区域擦除</p>
+                            <p><kbd>M</kbd> - 放大镜模式 (MAGNIFY) - 120x120px 透镜，放大4倍，每1个原始细胞被放大显示为4×4像素的方块</p>
+                            <p><kbd>H</kbd> - 手工模式 (HANDMADE) - 棋盘大小为 18x18，每个格子 32x32px当作1个细胞，间隔线条 1px，即 19x19线的标准围棋棋盘 </p>
+                            <h4>📈 图表</h4>
+                            <p><kbd>C</kbd> - 折叠/展开图表 (TOGGLE CHART) - 随着代代演变，绘制每一代的活细胞数量、新生细胞个数的趋势图，竖直线高度与细胞数量成正比。注意新生数量覆盖在上层，不可能超过下层的活细胞数量，有颜色区分</p>
+                            
+                            <button class="help-close">✖️ 关闭</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            
+            // 加载图片（240x240）
+            const img = overlay.querySelector('#helpDialogImage');
+            const container = overlay.querySelector('#helpImageContainer');
+            // 生成随机图案的函数
+            function generateRandomPattern240() {
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = 240;
+                offCanvas.height = 240;
+                const offCtx = offCanvas.getContext('2d');
+                
+                const s = 24;      // 方块大小
+                const ad = 40;     // 影响密度
+                
+                // 密度映射：ad=0 → 0.05，ad=100 → 0.7，ad=40 → 约 0.31
+                const density = 0.05 + (Math.min(100, Math.max(0, ad)) / 100) * 0.65;
+                
+                //offCtx.fillStyle = '#1e2a32';
+                //offCtx.fillStyle = '#ADD8E6'; // 浅蓝色
+                offCtx.fillStyle = '#ffffff'; // 白色
+                offCtx.fillRect(0, 0, 240, 240);
+                
+                for (let y = 0; y < 240; y += s) {
+                    for (let x = 0; x < 240; x += s) {
+                        if (Math.random() < density) {
+                            // 生命游戏风格：绿色调，深浅变化
+                            //const intensity = 80 + Math.floor(Math.random() * 100); // 80-179
+                            //offCtx.fillStyle = `rgb(50, ${intensity + 50}, 30)`;
+                            //offCtx.fillStyle = '#2e7d32'; // 绿色
+                            //offCtx.fillStyle = '#D4A056 '; // 
+                            //offCtx.fillStyle = '#1E88E5 '; // Google/Material 蓝色
+                            //offCtx.fillStyle = '#234A66 '; // 蓝色，rgb(35, 74, 102)
+                            offCtx.fillStyle = '#F57F17 '; // 金黄色
+                            //const intensity = 100 + Math.floor(Math.random() * 155);       // 100-254
+                            //offCtx.fillStyle = `rgb(30, 50, ${intensity + 50})`; // 随机深浅的蓝色，蓝值 130-229
+                            //offCtx.fillStyle = `rgb(30, 50, ${intensity})`;
+                        } else {
+                            //offCtx.fillStyle = '#e8e8e8'; // 灰色
+                            offCtx.fillStyle = '#234A66 ';
+                        }
+                        const w = Math.min(s, 240 - x);
+                        const h = Math.min(s, 240 - y);
+                        offCtx.fillRect(x, y, w - 1, h - 1);
+                    }
+                }
+                
+                return offCanvas.toDataURL();
+            }
+
+            function refreshRandomPattern() {
+                img.src = generateRandomPattern240();
+            }
+            
+            if (img) {
+                //img.src = 'https://picsum.photos/id/0/240/240';  // 可替换为任意240x240图片地址
+                img.src = 'cover240.bmp';  
+                img.onerror = refreshRandomPattern;
+            }
+            
+            if (container) {
+                container.onclick = refreshRandomPattern;
+            }
+
+            overlay.querySelector('.help-close').onclick = () => overlay.remove();
+            overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
+        }
+        
+        // ========== 旋转功能 ==========
+        // 以画布中心为轴旋转当前画布 90°
+        function rotateGrid90() {
+            // 创建新的网格
+            const newGrid = Array(LOGIC_H).fill().map(() => new Uint8Array(LOGIC_W));
+            
+            // 顺时针旋转90度: newGrid[y][x] = oldGrid[SIZE-1-x][y]
+            for (let y = 0; y < LOGIC_H; y++) {
+                for (let x = 0; x < LOGIC_W; x++) {
+                    newGrid[y][x] = currentGrid[LOGIC_W - 1 - x][y];
+                }
+            }
+            
+            // 复制回 currentGrid
+            for (let y = 0; y < LOGIC_H; y++) {
+                for (let x = 0; x < LOGIC_W; x++) {
+                    currentGrid[y][x] = newGrid[y][x];
+                }
+            }
+            
+            // 同步手工模式棋盘
+            if (currentMode === 'handmade') {
+                syncCanvasToHandmade();
+            }
+            
+            needRedrawBase = true;
+            renderCanvas();
+            updateStats();
+            updateGlobalMax();
+            drawChart();
+        }
+        
+        // 旋转主函数：每次单击旋转90°
+        function rotateCanvas() {
+            // 手工模式下禁止旋转
+            if (currentMode === 'handmade') {
+                showTerminationNotice("⚠️ ROTATE: Invalid in HANDMADE mode ");
+                return;
+            }
+            if (intervalId) { // 停止演化（如果有）
+                stopSimulation();
+            }
+            rotationCount = (rotationCount + 1) % 4;
+            rotateGrid90();
+            let angleDesc = '';
+            if (rotationCount === 1) angleDesc = '90°';
+            else if (rotationCount === 2) angleDesc = '180°';
+            else if (rotationCount === 3) angleDesc = '270°';
+            else angleDesc = '0°';
+            showTerminationNotice(`ROTATE: ${angleDesc}`);
+        }
+        
+        function countAlive() { 
+            if (currentMode === 'handmade') return countHandmadeAlive();
+            let alive = 0; for(let y=0;y<LOGIC_H;y++)for(let x=0;x<LOGIC_W;x++)alive+=currentGrid[y][x]; return alive; 
+        }
+        
+        function updateStats() { liveCountSpan.innerText = countAlive(); genCountSpan.innerText = generation; }
+        
+        function updateGlobalMax() { 
+            let maxVal = 1; 
+            let maxNewBorn = 1;
+
+            for(let v of historyAliveList) if(v > maxVal) maxVal = v; 
+            for(let v of historyNewBornList) if(v > maxNewBorn) maxNewBorn = v;  // 
+
+            const cur=countAlive(); 
+            if(cur>maxVal) maxVal=cur; 
+            globalMaxAlive = maxVal>0?maxVal:1; 
+            globalMaxNewBorn = maxNewBorn > 0 ? maxNewBorn : 1;  // 
+        }
+        
+        function resetHistory() { 
+            const alive = countAlive();
+            //historyAliveList = [alive];
+            historyAliveList = [0];
+            historyNewBornList = [0]; 
+            globalMaxAlive = alive > 0 ? alive : 1;
+            globalMaxNewBorn = 1; 
+            drawChart();
+        }
+        
+        function recordCurrentGeneration() { 
+            const alive = countAlive(); 
+            // 如果当前代数超出数组长度，用0填充
+            while(historyAliveList.length <= generation) {
+                historyAliveList.push(0);
+                historyNewBornList.push(0);
+            }
+            historyAliveList[generation] = alive; 
+            historyNewBornList[generation] = newBornCount;  // 记录新生细胞数
+            updateGlobalMax(); 
+            drawChart(); 
+        }
+        
+        // CHART：画布下方 601x200px 区域，纵向直线代表细胞数量
+        function drawChart() {
+
+            if(!historyCtx) return; 
+            const w=601, h = 200; 
+            historyCanvas.width = w; 
+            historyCanvas.height = h;
+            const ctxChart = historyCtx; 
+            ctxChart.clearRect(0, 0, w, h);
+
+            if(historyAliveList.length === 0) return;
+
+            const maxLineHeight = 180;
+            const pixelsPerGen = 2; 
+            const totalGens = historyAliveList.length;
+            let startOffset = 0; 
+
+            if(totalGens*pixelsPerGen > w) startOffset = totalGens*pixelsPerGen - w;
+            // 确保 historyNewBornList 长度一致
+            while(historyNewBornList.length < totalGens) historyNewBornList.push(0);
+
+            // 使用统一的 Y 轴比例尺（以活细胞最大值为基准）
+            const unifiedMax = Math.max(globalMaxAlive, globalMaxNewBorn);
+            // 绘制活细胞数量
+            for(let gen=0;gen<totalGens;gen++) {
+                const xPos = gen*pixelsPerGen - startOffset; 
+                if(xPos<0||xPos>=w) continue;
+                const aliveCount=historyAliveList[gen]; 
+                //let heightRatio = aliveCount / globalMaxAlive; 
+                let heightRatio = aliveCount / unifiedMax; 
+                if(heightRatio>1)heightRatio=1;
+                const lineHeight=heightRatio*maxLineHeight; 
+                const yStart = h - lineHeight;
+
+                ctxChart.beginPath(); 
+                ctxChart.moveTo(xPos,yStart); 
+                ctxChart.lineTo(xPos,h); 
+                ctxChart.strokeStyle='#f0c674';  // 橙黄色
+                ctxChart.lineWidth = 2; 
+                ctxChart.stroke();
+            }
+            // 绘制新生细胞
+            for(let gen = 0; gen < totalGens; gen++) {
+                const xPos = gen * pixelsPerGen - startOffset; 
+                if(xPos < 0 || xPos >= w) continue;
+                
+                const newBornCountVal = historyNewBornList[gen] || 0;
+                //let heightRatio = newBornCountVal / globalMaxNewBorn; // 比例尺不对
+                let heightRatio = newBornCountVal / unifiedMax;
+                if(heightRatio > 1) heightRatio = 1;
+                const lineHeight = heightRatio * maxLineHeight;
+                const yStart = h - lineHeight;
+                
+                ctxChart.beginPath();
+                ctxChart.moveTo(xPos, yStart);
+                ctxChart.lineTo(xPos, h);
+                ctxChart.strokeStyle = '#87CEEB';  // 背景浅蓝色
+                ctxChart.lineWidth = 2;
+                ctxChart.stroke();
+            }
+        }
+        
+        function showTerminationNotice(msg) { 
+            terminationMessage=msg; 
+            termNotice.innerText=msg; 
+            termNotice.style.display='block'; 
+        }
+        
+        function clearTerminationNotice() { 
+            terminationMessage=''; 
+            termNotice.innerText=''; 
+            termNotice.style.display='none'; 
+        }
+        
+        function checkTerminationAndStop() {
+            const currentAlive = countAlive();
+            if (currentAlive === 0) {
+                if (isRunning) { stopSimulation(); showTerminationNotice('⚠️ THE END: All Dead'); }
+                return true;
+            }
+            if (currentAlive === lastAliveCount) {
+                consecutiveStableCount++;
+                if (consecutiveStableCount >= STABLE_THRESHOLD) {
+                    if (isRunning) { stopSimulation(); showTerminationNotice(`⚠️ THE END: Keep ${STABLE_THRESHOLD} Gens Unchanged (${currentAlive} survived)`); }
+                    return true;
+                }
+            } else { consecutiveStableCount = 0; }
+            lastAliveCount = currentAlive;
+            return false;
+        }
+        
+        function resetTerminationTracking() { 
+            consecutiveStableCount=0; 
+            lastAliveCount=countAlive(); 
+            clearTerminationNotice(); 
+        }
+        
+        function clearGrid() {
+            for(let y = 0; y < LOGIC_H; y++) { for(let x = 0; x < LOGIC_W; x++) currentGrid[y][x] = 0; }
+            for(let row = 0; row < HANDMADE_GRID_H; row++) { for(let col = 0; col < HANDMADE_GRID_W; col++) handmadeBoard[row][col] = 0; }
+            generation = 0;
+            rotationCount = 0;
+            newBornCount = 0;  // 重置新生细胞计数
+            needRedrawBase = true;
+            updateStats();
+            resetTerminationTracking();
+            resetHistory();
+            renderCanvas();
+        }
+        
+        function drawEraserCursor(cx, cy) {
+            if (currentMode !== 'eraser') return;
+            if (cx < 0 || cx >= SIZE || cy < 0 || cy >= SIZE) return;
+            ctx.save();
+            const halfSize = 32;
+            const left = cx - halfSize;
+            const top = cy - halfSize;
+            ctx.globalAlpha = 0.15;
+            ctx.fillStyle = '#ff9800';
+            ctx.fillRect(left, top, 64, 64);
+            ctx.globalAlpha = 1;
+            ctx.beginPath();
+            ctx.rect(left, top, 64, 64);
+            ctx.strokeStyle = '#ff9800';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx - 12, cy); ctx.lineTo(cx - 5, cy);
+            ctx.moveTo(cx + 5, cy); ctx.lineTo(cx + 12, cy);
+            ctx.moveTo(cx, cy - 12); ctx.lineTo(cx, cy - 5);
+            ctx.moveTo(cx, cy + 5); ctx.lineTo(cx, cy + 12);
+            ctx.strokeStyle = '#ff9800';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        // 渲染画布 - 优化版：使用缓存避免重复绘制基础画布
+        function renderCanvas() {
+            if (needRedrawBase || !baseCanvasCache) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, SIZE, SIZE);
+                for (let gy = 0; gy < LOGIC_H; gy++) {
+                    for (let gx = 0; gx < LOGIC_W; gx++) {
+                        if (currentGrid[gy][gx]) {
+                            ctx.fillStyle = '#000000';
+                            ctx.fillRect(gx, gy, 1, 1);
+                        }
+                    }
+                }
+                
+                if (!baseCanvasCache) {
+                    baseCanvasCache = document.createElement('canvas');
+                    baseCanvasCache.width = SIZE;
+                    baseCanvasCache.height = SIZE;
+                }
+                baseCanvasCache.getContext('2d').drawImage(canvas, 0, 0);
+                needRedrawBase = false;
+            } else {
+                ctx.drawImage(baseCanvasCache, 0, 0);
+            }
+            
+            if (currentMode === 'handmade') {
+                drawHandmadeGridOverlay();
+            }
+            if (currentMode === 'magnify' && showLens && mouseX >= 0 && mouseX < SIZE && mouseY >= 0 && mouseY < SIZE) {
+                drawMagnifierLens(mouseX, mouseY);
+            }
+            if (currentMode === 'eraser' && mouseX >= 0 && mouseX < SIZE && mouseY >= 0 && mouseY < SIZE) {
+                drawEraserCursor(mouseX, mouseY);
+            }
+            if (currentMode === 'handmade' && mouseX >= 0 && mouseX < SIZE && mouseY >= 0 && mouseY < SIZE) {
+                drawHandmadeHoverHighlight(mouseX, mouseY);
+            }
+        }
+        
+        // 放大镜透镜
+        function drawMagnifierLens(cx, cy) {
+            const lensLeft = cx - LENS_SIZE/2;
+            const lensTop = cy - LENS_SIZE/2;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, LENS_SIZE/2, 0, Math.PI*2);
+            ctx.clip();
+            ctx.fillStyle = 'rgba(240,248,255,0.85)';
+            ctx.fillRect(lensLeft, lensTop, LENS_SIZE, LENS_SIZE);
+            const lx = Math.floor(cx), ly = Math.floor(cy);
+            for (let py = 0; py < LENS_SIZE; py++) {
+                for (let px = 0; px < LENS_SIZE; px++) {
+                    const offX = px - LENS_SIZE/2;
+                    const offY = py - LENS_SIZE/2;
+                    const logicX = lx + Math.floor(offX / MAG_CELL_PX);
+                    const logicY = ly + Math.floor(offY / MAG_CELL_PX);
+                    if (logicX >= 0 && logicX < LOGIC_W && logicY >= 0 && logicY < LOGIC_H) {
+                        ctx.fillStyle = currentGrid[logicY][logicX] ? '#000000' : '#ffffff';
+                    } else { ctx.fillStyle = '#cccccc'; }
+                    ctx.fillRect(lensLeft + px, lensTop + py, 1, 1);
+                }
+            }
+            ctx.restore();
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, LENS_SIZE/2, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ff8800';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(cx, cy, LENS_SIZE/2 - 1, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(cx-10, cy); ctx.lineTo(cx-4, cy);
+            ctx.moveTo(cx+4, cy); ctx.lineTo(cx+10, cy);
+            ctx.moveTo(cx, cy-10); ctx.lineTo(cx, cy-4);
+            ctx.moveTo(cx, cy+4); ctx.lineTo(cx, cy+10);
+            ctx.strokeStyle = '#ff4444';
+            ctx.lineWidth = 2; 
+            ctx.stroke();
+            ctx.restore();
+        }
+                
+        function paintCell(logicX, logicY, value) {
+            let changed = false;
+            const r = 2;
+            for(let dy = -r; dy <= r; dy++) {
+                for(let dx = -r; dx <= r; dx++) {
+                    if(dx*dx + dy*dy > r*r) continue;
+                    const nx = logicX + dx, ny = logicY + dy;
+                    if(nx >= 0 && nx < LOGIC_W && ny >= 0 && ny < LOGIC_H && currentGrid[ny][nx] !== value) {
+                        currentGrid[ny][nx] = value;
+                        changed = true;
+                    }
+                }
+            }
+            if(changed) {
+                if (currentMode === 'handmade') syncCanvasToHandmade();
+                needRedrawBase = true;
+                renderCanvas();
+                updateStats();
+                resetTerminationTracking();
+                updateGlobalMax();
+                drawChart();
+                showFeedbackDot(logicX, logicY, value);
+            }
+        }
+        
+        function eraseArea(logicX, logicY) {
+            let changed = false;
+            const halfSize = 32;
+            const startX = Math.max(0, logicX - halfSize);
+            const startY = Math.max(0, logicY - halfSize);
+            const endX = Math.min(LOGIC_W, logicX + halfSize);
+            const endY = Math.min(LOGIC_H, logicY + halfSize);
+            for(let dy = startY; dy < endY; dy++) {
+                for(let dx = startX; dx < endX; dx++) {
+                    if(currentGrid[dy][dx] !== 0) {
+                        currentGrid[dy][dx] = 0;
+                        changed = true;
+                    }
+                }
+            }
+            if(changed) {
+                if (currentMode === 'handmade') syncCanvasToHandmade();
+                needRedrawBase = true;
+                renderCanvas();
+                updateStats();
+                resetTerminationTracking();
+                updateGlobalMax();
+                drawChart();
+                showFeedbackDot(logicX, logicY, 0);
+            }
+        }
+        
+        function showFeedbackDot(lx, ly, isPaint) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(lx + 0.5, ly + 0.5, 6, 0, Math.PI*2);
+            ctx.fillStyle = isPaint === 1 ? '#ff3333' : '#ff9800';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(lx + 0.5, ly + 0.5, 3, 0, Math.PI*2);
+            ctx.fillStyle = isPaint === 1 ? '#cc0000' : '#e65100';
+            ctx.fill();
+            ctx.restore();
+            setTimeout(() => renderCanvas(), 150);
+        }
+        
+        // ========== 图案叠加函数 ==========
+        function addCircles(s, ad) {
+            let r = s;
+            const tol = 0.6;
+            while(r <= 350) {
+                for(let y=0; y<LOGIC_H; y++) for(let x=0; x<LOGIC_W; x++) {
+                    if(Math.abs(Math.hypot(x-CENTER_X, y-CENTER_Y) - r) <= tol) currentGrid[y][x] = 1;
+                }
+                s += ad;
+                if(s <= 0) break;
+                r += s;
+            }
+            for(let dy=-2; dy<=2; dy++) for(let dx=-2; dx<=2; dx++) if(dx*dx+dy*dy<=3) {
+                const nx=CENTER_X+dx, ny=CENTER_Y+dy;
+                if(nx>=0 && nx<LOGIC_W && ny>=0 && ny<LOGIC_H) currentGrid[ny][nx]=1;
+            }
+        }
+        
+        function addSquares(s, ad) {
+            let h = s;
+            const tol = 0.6;
+            while(h <= 350) {
+                const L=CENTER_X-h, R=CENTER_X+h, T=CENTER_Y-h, B=CENTER_Y+h;
+                for(let y=0; y<LOGIC_H; y++) for(let x=0; x<LOGIC_W; x++) {
+                    if((Math.abs(x-L)<=tol && y>=T && y<=B) || (Math.abs(x-R)<=tol && y>=T && y<=B) ||
+                       (Math.abs(y-T)<=tol && x>=L && x<=R) || (Math.abs(y-B)<=tol && x>=L && x<=R))
+                        currentGrid[y][x]=1;
+                }
+                s += ad;
+                if(s <= 0) break;
+                h += s;
+            }
+            for(let dy=-1; dy<=1; dy++) for(let dx=-1; dx<=1; dx++) {
+                const nx=CENTER_X+dx, ny=CENTER_Y+dy;
+                if(nx>=0 && nx<LOGIC_W && ny>=0 && ny<LOGIC_H) currentGrid[ny][nx]=1;
+            }
+        }
+        
+        function drawLine(x0,y0,x1,y1) {
+            let x0i=Math.round(x0), y0i=Math.round(y0), x1i=Math.round(x1), y1i=Math.round(y1);
+            let dx=Math.abs(x1i-x0i), dy=Math.abs(y1i-y0i);
+            let sx=x0i<x1i?1:-1, sy=y0i<y1i?1:-1, err=dx-dy;
+            let x=x0i, y=y0i;
+            while(true) {
+                if(x>=0 && x<LOGIC_W && y>=0 && y<LOGIC_H) currentGrid[y][x]=1;
+                if(x===x1i && y===y1i) break;
+                let e2=2*err;
+                if(e2 > -dy) { err -= dy; x += sx; }
+                if(e2 < dx) { err += dx; y += sy; }
+            }
+        }
+        
+        function addTriangles(s, ad) {
+            const sin60=Math.sin(Math.PI/3), cos60=Math.cos(Math.PI/3);
+            let r = s;
+            while(r <= 320) {
+                const x1=CENTER_X, y1=CENTER_Y - r;
+                const x2=CENTER_X - r*sin60, y2=CENTER_Y + r*cos60;
+                const x3=CENTER_X + r*sin60, y3=CENTER_Y + r*cos60;
+                drawLine(x1,y1,x2,y2); drawLine(x2,y2,x3,y3); drawLine(x3,y3,x1,y1);
+                s += ad;
+                if(s <= 0) break;
+                r += s;
+            }
+            for(let dy=-2; dy<=2; dy++) for(let dx=-2; dx<=2; dx++) 
+            if(dx*dx+dy*dy<=3) {
+                const nx=CENTER_X+dx, ny=CENTER_Y+dy;
+                if(nx>=0 && nx<LOGIC_W && ny>=0 && ny<LOGIC_H) currentGrid[ny][nx]=1;
+            }
+        }
+        
+        function addTrianglesDown(s, ad) {
+            const sin60 = Math.sin(Math.PI/3), cos60 = Math.cos(Math.PI/3);
+            let r = s;
+            while(r <= 320) {
+                const x1 = CENTER_X, y1 = CENTER_Y + r;
+                const x2 = CENTER_X - r * sin60, y2 = CENTER_Y - r * cos60;
+                const x3 = CENTER_X + r * sin60, y3 = CENTER_Y - r * cos60;
+                drawLine(x1, y1, x2, y2);
+                drawLine(x2, y2, x3, y3);
+                drawLine(x3, y3, x1, y1);
+                s += ad;
+                if(s <= 0) break;
+                r += s;
+            }
+            for(let dy = -2; dy <= 2; dy++) {
+                for(let dx = -2; dx <= 2; dx++) {
+                    if(dx * dx + dy * dy <= 3) {
+                        const nx = CENTER_X + dx, ny = CENTER_Y + dy;
+                        if(nx >= 0 && nx < LOGIC_W && ny >= 0 && ny < LOGIC_H) {
+                            currentGrid[ny][nx] = 1;
+                        }
+                    }
+                }
+            }
+        }
+        
+        function addDiagonalLines(s, ad) {
+            let offset = -LOGIC_H;
+            while(offset <= LOGIC_W) {
+                const x1 = Math.max(0, offset);
+                const y1 = Math.max(0, -offset);
+                const x2 = Math.min(LOGIC_W, offset + LOGIC_H);
+                const y2 = Math.min(LOGIC_H, -offset + LOGIC_W);
+                if(x1 <= LOGIC_W && y1 <= LOGIC_H && x2 >= 0 && y2 >= 0) {
+                    drawLine(x1, y1, x2, y2);
+                }
+                s += ad;
+                if(s <= 0) break;
+                offset += s;
+            }
+        }
+        
+        function drawVerticalLine(x) { for(let y = 0; y < LOGIC_H; y++) currentGrid[y][x] = 1; }
+        function drawHorizontalLine(y) { for(let x = 0; x < LOGIC_W; x++) currentGrid[y][x] = 1; }
+        
+        function addVerticalGridCentered(s, ad) {
+            drawVerticalLine(CENTER_X);
+            for(let i = s; i <= Math.max(CENTER_X, LOGIC_W - 1 - CENTER_X); i += s) {
+                if(CENTER_X - i >= 0) drawVerticalLine(CENTER_X - i);
+                if(CENTER_X + i < LOGIC_W) drawVerticalLine(CENTER_X + i);
+                s += ad;
+                if(s <= 0) break;
+            }
+        }
+        
+        function addHorizontalGridCentered(s, ad) {
+            drawHorizontalLine(CENTER_Y);
+            for(let i = s; i <= Math.max(CENTER_Y, LOGIC_H - 1 - CENTER_Y); i += s) {
+                if(CENTER_Y - i >= 0) drawHorizontalLine(CENTER_Y - i);
+                if(CENTER_Y + i < LOGIC_H) drawHorizontalLine(CENTER_Y + i);
+                s += ad;
+                if(s <= 0) break;
+            }
+        }
+        
+        function addVerticalGridCorner(s, ad) {
+            for(let x = 0; x < LOGIC_W; x += s) {
+                drawVerticalLine(x);
+                s += ad;
+                if(s <= 0) break;
+            }
+        }
+        
+        function addHorizontalGridCorner(s, ad) {
+            for(let y = 0; y < LOGIC_H; y += s) {
+                drawHorizontalLine(y);
+                s += ad;
+                if(s <= 0) break;
+            }
+        }
+        
+        function addGridCentered(s, ad) {
+            addVerticalGridCentered(s, ad);
+            addHorizontalGridCentered(s, ad);
+        }
+        
+        function addCirclesOnDiagonal(s, ad) {
+            const diagonalLength = Math.sqrt(LOGIC_W * LOGIC_W + LOGIC_H * LOGIC_H);
+            let d = 0;
+            let r = s;
+            while(d <= diagonalLength) {
+                const t = d / diagonalLength;
+                const cx = LOGIC_W * t;
+                const cy = LOGIC_H * t;
+                drawCircle(cx, cy, r);
+                s += ad;
+                if(s <= 0) break;
+                d += s;
+                r += s;
+            }
+        }
+        
+        function drawCircle(cx, cy, r) {
+            const radius = Math.round(r);
+            let x = radius;
+            let y = 0;
+            let p = 1 - radius;
+            while (x >= y) {
+                const points = [
+                    [x, y], [y, x], [-y, x], [-x, y],
+                    [-x, -y], [-y, -x], [y, -x], [x, -y]
+                ];
+                const xi = Math.round(cx);
+                const yi = Math.round(cy);
+                for(let [dx, dy] of points) {
+                    const px = xi + dx;
+                    const py = yi + dy;
+                    if(px >= 0 && px < LOGIC_W && py >= 0 && py < LOGIC_H) {
+                        currentGrid[py][px] = 1;
+                    }
+                }
+                y++;
+                if (p <= 0) {
+                    p += 2 * y + 1;
+                } else {
+                    x--;
+                    p += 2 * (y - x) + 1;
+                }
+            }
+        }
+
+        // Blocks 图案 - 从左上角开始平铺实心方块，s 等于实心方块大小，ad 等于间隔距离
+        function addBlocks(s, ad) {
+            const blockSize = s;
+            const gap = ad + 1;
+            const step = blockSize + gap;
+            for (let y = 0; y < LOGIC_H; y += step) {
+                for (let x = 0; x < LOGIC_W; x += step) {
+                    for (let dy = 0; dy < blockSize && (y + dy) < LOGIC_H; dy++) {
+                        for (let dx = 0; dx < blockSize && (x + dx) < LOGIC_W; dx++) {
+                            currentGrid[y + dy][x + dx] = 1;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 改进版 Random 图案，ad 控制密度，s 控制方块大小.
+        function addRandom(s, ad) {
+            const blockSize = Math.min(32, s); // 最大32x32 px
+            const density = Math.min(0.75, 0.05 + ad / 198 * 0.65); //
+            
+            for (let y = 0; y < LOGIC_H; y += blockSize) {
+                for (let x = 0; x < LOGIC_W; x += blockSize) {
+                    if (Math.random() < density) {
+                        for (let dy = 0; dy < blockSize && (y + dy) < LOGIC_H; dy++) {
+                            for (let dx = 0; dx < blockSize && (x + dx) < LOGIC_W; dx++) {
+                                currentGrid[y + dy][x + dx] = 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 添加图案，叠加在画布上
+        function addCurrentPattern() {
+            if (currentMode === 'handmade') { showTerminationNotice("⚠️ ADD PATTERN: Invalid in HANDMADE mode "); return; }
+            const pat = patternSelect.value;
+            let s = parseInt(spacingInput.value, 10);
+            if(isNaN(s)) s = 20;
+            s = Math.min(MAX_PATTERN_SPACE, Math.max(2, s));
+            spacing = s;
+            spacingInput.value = s;
+            let ad = adCurrent;
+            if (pat !== 'random' && pat !== 'blocks') {
+                const maxAd = s / 2; // AD 最大不超过 SPACING 的一半
+                const minAd = -s / 2;
+                ad = Math.min(maxAd, Math.max(minAd, ad));
+            }
+            if(pat === 'circles') addCircles(s, ad);
+            else if(pat === 'squares') addSquares(s, ad);
+            else if(pat === 'triangles') addTriangles(s, ad);
+            else if(pat === 'trianglesDown') addTrianglesDown(s, ad);
+            else if(pat === 'grid') addGridCentered(s, ad);
+            else if(pat === 'vgrid') addVerticalGridCorner(s, ad);
+            else if(pat === 'hgrid') addHorizontalGridCorner(s, ad);
+            else if(pat === 'diagonal') addDiagonalLines(s, ad);
+            else if(pat === 'circlesDiagonal') addCirclesOnDiagonal(s, ad);
+            else if(pat === 'blocks') addBlocks(s, Math.abs(ad));
+            else addRandom(s, Math.abs(ad));
+            syncCanvasToHandmade();
+            needRedrawBase = true;
+            renderCanvas();
+            updateStats();
+            resetTerminationTracking();
+            updateGlobalMax();
+            drawChart();
+            showTerminationNotice(`🆗 ADD PATTERN: ${pat}, SPACING ${s}px, AD ${ad}px `);
+        }
+        
+        function resetClear() {
+            if(intervalId) { clearInterval(intervalId); intervalId = null; }
+            isRunning = false;
+            updatePlayPauseBtn();
+            clearGrid();
+            adSlider.value = '0';
+            onAdChange();
+        }
+        
+        function toggleChart() {
+            if (chartCollapsed) {
+                chartArea.classList.remove('collapsed');
+                toggleChartBtn.innerHTML = '📉 TOGGLE CHART';
+                chartCollapsed = false;
+            } else {
+                chartArea.classList.add('collapsed');
+                toggleChartBtn.innerHTML = '📈 TOGGLE CHART';
+                chartCollapsed = true;
+            }
+        }
+        
+        // 计算下一代细胞，根据康威规则 B3/S23
+        function computeNextGen() {
+            if (currentMode === 'handmade') {
+                evolveHandmadeBoard();
+                //newBornCount = 0;
+            } else {
+                for(let y = 0; y < LOGIC_H; y++) nextGrid[y].fill(0);
+                newBornCount = 0;  // 记录本代新生细胞数
+                for(let y = 0; y < LOGIC_H; y++) {
+                    for(let x = 0; x < LOGIC_W; x++) {
+                        let cell = currentGrid[y][x];
+                        let neighbors = 0;
+                        for(let dy = -1; dy <= 1; dy++) {
+                            for(let dx = -1; dx <= 1; dx++) {
+                                if(dx === 0 && dy === 0) continue;
+                                const nx = x + dx, ny = y + dy;
+                                if(nx >= 0 && nx < LOGIC_W && ny >= 0 && ny < LOGIC_H) neighbors += currentGrid[ny][nx];
+                            }
+                        }
+                        if(cell === 1) {
+                            if(neighbors === 2 || neighbors === 3) nextGrid[y][x] = 1;
+                        } else {
+                            if(neighbors === 3) { nextGrid[y][x] = 1; newBornCount++; } // 新生细胞
+                        }
+                    }
+                }
+                let tmp = currentGrid;
+                currentGrid = nextGrid;
+                nextGrid = tmp;
+                // 可选：显示新生细胞数
+                showTerminationNotice(`# ${newBornCount} New Cells Born`);
+            }
+            generation++; // 下一代
+            needRedrawBase = true;
+            updateStats();
+            renderCanvas();
+            recordCurrentGeneration(); // 演化完成后立即记录
+
+            const shouldStop = checkTerminationAndStop();
+            if(shouldStop && isRunning) stopSimulation();
+        }
+        
+        function stepOnce() {
+            if(intervalId) { clearInterval(intervalId); intervalId = null; isRunning = false; updatePlayPauseBtn(); }
+            computeNextGen();
+        }
+        
+        function startSimulation() {
+            if(isRunning) return;
+            clearTerminationNotice();
+            isRunning = true;
+            updatePlayPauseBtn();
+            if(intervalId) clearInterval(intervalId);
+            intervalId = setInterval(() => { if(isRunning) computeNextGen(); }, 1000 / currentSpeed);
+            showTerminationNotice(`RUN: Start playing at ${currentSpeed}Hz `);
+        }
+        
+        function stopSimulation() {
+            if(intervalId) { clearInterval(intervalId); intervalId = null; }
+            isRunning = false;
+            updatePlayPauseBtn();
+            showTerminationNotice("PAUSE: OK ");
+        }
+        
+        function togglePlay() { isRunning ? stopSimulation() : startSimulation(); }
+        function updatePlayPauseBtn() { playPauseBtn.innerHTML = isRunning ? '◼️ PAUSE' : '▶️ RUN'; playPauseBtn.classList.add('run-btn'); }
+        function onSpeedChange() { let hz = parseInt(speedSelect.value, 10); if(!isNaN(hz) && hz !== currentSpeed) { currentSpeed = hz; if(isRunning) startSimulation(); } }
+        function onAdChange() { 
+            let ad = parseInt(adSlider.value, 10);
+            if(isNaN(ad)) ad = 0;
+            adCurrent = ad;
+            if (adValue) {
+                adValue.innerText = ad;
+            }
+        }
+        function changeSpacing(delta) { let newVal = parseInt(spacingInput.value, 10) + delta; newVal = Math.min(MAX_PATTERN_SPACE, Math.max(2, newVal)); spacingInput.value = newVal; }
+        function changeAd(delta) { let newVal = parseInt(adSlider.value, 10) + delta; newVal = Math.min(100, Math.max(-100, newVal)); adSlider.value = newVal; onAdChange(); }
+        
+        function onKeyDown(e) {
+            const key = e.key;
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            if (key === 'f' || key === 'F') { e.preventDefault(); stepOnce(); }
+            else if (key === ' ' || key === 'Space') { e.preventDefault(); togglePlay(); }
+            //else if (key === 'r' && e.ctrlKey) { e.preventDefault(); resetClear(); }
+            // Ctrl+R 重置
+            else if ((e.ctrlKey || e.metaKey) && (key === 'r' || key === 'R')) { 
+                e.preventDefault(); 
+                e.stopPropagation();
+                resetClear();   // 重置画布
+                showTerminationNotice("RESET by Ctrl+R");
+                return false;
+            }
+            else if (key === 'r' || key === 'R') { e.preventDefault(); rotateCanvas(); }
+            else if (key === 'p' || key === 'P') { e.preventDefault(); setMode('paint'); }
+            else if (key === 'e' || key === 'E') { e.preventDefault(); setMode('eraser'); }
+            else if (key === 'm' || key === 'M') { e.preventDefault(); setMode('magnify'); }
+            else if (key === 'h' || key === 'H') { e.preventDefault(); setMode('handmade'); }
+            else if (key === 'c' || key === 'C') { e.preventDefault(); toggleChart(); }
+            else if (key === 'ArrowUp') { e.preventDefault(); changeSpacing(e.shiftKey ? 5 : 1); }
+            else if (key === 'ArrowDown') { e.preventDefault(); changeSpacing(e.shiftKey ? -5 : -1); }
+            else if (key === 'ArrowLeft') { e.preventDefault(); changeAd(e.shiftKey ? -5 : -1); }
+            else if (key === 'ArrowRight') { e.preventDefault(); changeAd(e.shiftKey ? 5 : 1); }
+        }
+        
+        // 鼠标事件
+        function initMouseEvents() {
+            let painting = false;
+            let lastPaintedCell = null;
+            let pendingRender = false;
+            
+            function throttledRender() {
+                if (pendingRender) return;
+                pendingRender = true;
+                requestAnimationFrame(() => {
+                    renderCanvas();
+                    pendingRender = false;
+                });
+            }
+            
+            function getHandmadeCellFromMouse(canvasX, canvasY) {
+                if (currentMode !== 'handmade') return null;
+                const px = Math.min(SIZE-1, Math.max(0, canvasX));
+                const py = Math.min(SIZE-1, Math.max(0, canvasY));
+                return getHandmadeCellFromCoord(px, py);
+            }
+            
+            function performFill(cell) {
+                if (!cell) return;
+                if (lastPaintedCell && lastPaintedCell.col === cell.col && lastPaintedCell.row === cell.row) return;
+                lastPaintedCell = cell;
+                toggleHandmadeCell(cell.col, cell.row);
+            }
+            
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+                const canvasX = (e.clientX - rect.left) * sx;
+                const canvasY = (e.clientY - rect.top) * sy;
+                const newMouseX = Math.min(SIZE-1, Math.max(0, canvasX));
+                const newMouseY = Math.min(SIZE-1, Math.max(0, canvasY));
+                
+                if (newMouseX !== mouseX || newMouseY !== mouseY) {
+                    mouseX = newMouseX;
+                    mouseY = newMouseY;
+                    showLens = true;
+                    
+                    if (currentMode === 'handmade' && painting && (e.buttons === 1)) {
+                        const cell = getHandmadeCellFromMouse(mouseX, mouseY);
+                        if (cell) performFill(cell);
+                        throttledRender();
+                    }
+                    else if (currentMode === 'magnify') { 
+                        throttledRender();
+                    }
+                    else if (currentMode === 'eraser') { 
+                        throttledRender(); 
+                        if (painting && (e.buttons === 1)) { 
+                            eraseArea(Math.floor(mouseX), Math.floor(mouseY)); 
+                        } 
+                    }
+                    else if (currentMode === 'paint' && painting && (e.buttons === 1)) { 
+                        paintCell(Math.floor(mouseX), Math.floor(mouseY), 1); 
+                    }
+                    else { 
+                        throttledRender(); 
+                    }
+                }
+            });
+            
+            canvas.addEventListener('mouseleave', () => { 
+                showLens = false; 
+                mouseX = -100;
+                mouseY = -100;
+                renderCanvas();
+                painting = false; 
+                lastPaintedCell = null;
+            });
+            
+            canvas.addEventListener('mouseenter', () => { 
+                showLens = true; 
+                renderCanvas();
+                lastPaintedCell = null;
+            });
+            
+            canvas.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+                const canvasX = (e.clientX - rect.left) * sx;
+                const canvasY = (e.clientY - rect.top) * sy;
+                const lx = Math.min(SIZE-1, Math.max(0, Math.floor(canvasX)));
+                const ly = Math.min(SIZE-1, Math.max(0, Math.floor(canvasY)));
+                
+                painting = true;
+                lastPaintedCell = null;
+                
+                if (currentMode === 'paint') { 
+                    paintCell(lx, ly, 1); 
+                }
+                else if (currentMode === 'eraser') { 
+                    eraseArea(lx, ly); 
+                }
+                else if (currentMode === 'handmade') {
+                    const cell = getHandmadeCellFromCoord(lx, ly);
+                    if (cell) performFill(cell);
+                }
+            });
+            
+            window.addEventListener('mouseup', () => { 
+                painting = false; 
+                lastPaintedCell = null;
+            });
+            
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+        
+        // 设置操作模式
+        function setMode(mode) {
+            let lastMode = currentMode;
+            currentMode = mode;
+            if(mode === 'paint') {
+                canvas.style.cursor = 'crosshair';
+                paintModeBtn.classList.add('mode-active');
+                eraserModeBtn.classList.remove('mode-active');
+                magnifyModeBtn.classList.remove('mode-active');
+                handmadeModeBtn.classList.remove('mode-active');
+                modeIndicator.innerText = '✏️ PAINT MODE';
+                showLens = false;
+                if (lastMode === 'handmade') {
+                    needRedrawBase = true;
+                    generation = 0;
+                    updateStats();
+                    resetHistory();
+                    resetTerminationTracking();
+                }
+                renderCanvas();
+            } else if(mode === 'eraser') {
+                canvas.style.cursor = 'none';
+                eraserModeBtn.classList.add('mode-active');
+                paintModeBtn.classList.remove('mode-active');
+                magnifyModeBtn.classList.remove('mode-active');
+                handmadeModeBtn.classList.remove('mode-active');
+                modeIndicator.innerText = '✳️ ERASER MODE';
+                showLens = false;
+                needRedrawBase = true;
+                renderCanvas();
+            } else if(mode === 'magnify') {
+                canvas.style.cursor = 'none';
+                magnifyModeBtn.classList.add('mode-active');
+                paintModeBtn.classList.remove('mode-active');
+                eraserModeBtn.classList.remove('mode-active');
+                handmadeModeBtn.classList.remove('mode-active');
+                modeIndicator.innerText = '🔍 MAGNIFY MODE';
+                showLens = true;
+                needRedrawBase = true;
+                renderCanvas();
+            } else if(mode === 'handmade') {
+                resetClear();
+                canvas.style.cursor = 'crosshair';
+                handmadeModeBtn.classList.add('mode-active');
+                paintModeBtn.classList.remove('mode-active');
+                eraserModeBtn.classList.remove('mode-active');
+                magnifyModeBtn.classList.remove('mode-active');
+                modeIndicator.innerText = '🖐️ HANDMADE MODE';
+                showLens = false;
+                syncCanvasToHandmade();
+                needRedrawBase = true;
+                renderCanvas();
+            }
+        }
+        
+        function initDefault() {
+            clearGrid();
+            addCircles(20, 0);
+            syncCanvasToHandmade();
+            needRedrawBase = true;
+            renderCanvas();
+            generation = 0;
+            updateStats();
+            resetTerminationTracking();
+            resetHistory();
+        }
+        
+        function bindEvents() {
+            playPauseBtn.onclick = togglePlay;
+            resetBtn.onclick = resetClear;
+            rotateBtn.onclick = rotateCanvas;
+            stepBtn.onclick = () => { if(isRunning) stopSimulation(); stepOnce(); };
+            addPatternBtn.onclick = addCurrentPattern;
+            speedSelect.onchange = onSpeedChange;
+            paintModeBtn.onclick = () => setMode('paint');
+            eraserModeBtn.onclick = () => setMode('eraser');
+            magnifyModeBtn.onclick = () => setMode('magnify');
+            handmadeModeBtn.onclick = () => setMode('handmade');
+            toggleChartBtn.onclick = toggleChart;
+            helpBtn.onclick = showHelpDialog;
+            spacingInput.onchange = function() { let v = parseInt(this.value); if(!isNaN(v)) this.value = Math.min(MAX_PATTERN_SPACE, Math.max(2, v)); };
+            adSlider.oninput = onAdChange;
+            window.addEventListener('keydown', onKeyDown);
+        }
+        
+        // 暴露给扩展模块的 API
+        window.LifeGameAPI = {
+            getCurrentGrid: () => currentGrid,
+            getGeneration: () => generation,
+            countAlive: countAlive,
+            syncCanvasToHandmade: syncCanvasToHandmade,
+            syncHandmadeToCanvas: syncHandmadeToCanvas,
+            renderCanvas: renderCanvas,
+            clearGrid: clearGrid,
+            addCircles: addCircles,
+            showTerminationNotice: showTerminationNotice,
+            SIZE: SIZE,
+            LOGIC_W: LOGIC_W,
+            LOGIC_H: LOGIC_H,
+            CENTER_X: CENTER_X,
+            CENTER_Y: CENTER_Y,
+            isRunning: () => isRunning,
+            generation: () => generation,
+            fullReset: function() {
+                if(intervalId) { clearInterval(intervalId); intervalId = null; }
+                isRunning = false;
+                updatePlayPauseBtn();
+                clearGrid();
+                adSlider.value = '0';
+                onAdChange();
+            }
+        };
+        
+        window.LifeGameExtensionsReady = function(extensions) {
+            const openBtn = document.getElementById('openBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const recordBtn = document.getElementById('recordBtn');
+            
+            if (extensions.openHandler) openBtn.onclick = extensions.openHandler;
+            if (extensions.saveHandler) saveBtn.onclick = extensions.saveHandler;
+            if (extensions.recordHandler) {
+                recordBtn.onclick = extensions.recordHandler;
+                if (extensions.updateRecordStatus) {
+                    window.updateRecordStatusDisplay = extensions.updateRecordStatus;
+                }
+            }
+            showTerminationNotice("✔️ Externsion loaded, OPEN/SAVE/RECORD avaliable ");
+        };
+        
+        function init() {
+            bindEvents();
+            initMouseEvents();
+            initDefault();
+            isRunning = false;
+            intervalId = null;
+            updatePlayPauseBtn();
+            setMode('paint');
+            chartArea.classList.remove('collapsed');
+            chartCollapsed = false;
+            onAdChange();
+        }
+        
+        init();
+    })();
+</script>
+</body>
+</html>
